@@ -6,8 +6,6 @@ use database_models::{
     prelude::{Exercise, WorkoutTemplate},
     workout_template,
 };
-use database_utils::server_key_validation_guard;
-use dependent_core_utils::is_server_key_validated;
 use dependent_fitness_utils::get_focused_workout_summary_with_exercises;
 use dependent_utility_utils::{
     expire_user_workout_template_details_cache, expire_user_workout_templates_list_cache,
@@ -28,7 +26,6 @@ pub async fn create_or_update_user_workout_template(
     user_id: String,
     input: UserWorkoutInput,
 ) -> Result<String> {
-    server_key_validation_guard(is_server_key_validated(ss).await?).await?;
     let mut summary = WorkoutSummary::default();
     let mut information = WorkoutInformation {
         comment: input.comment,
@@ -121,7 +118,6 @@ pub async fn delete_user_workout_template(
     user_id: String,
     workout_template_id: String,
 ) -> Result<bool> {
-    server_key_validation_guard(is_server_key_validated(ss).await?).await?;
     let Some(wkt) = WorkoutTemplate::find_by_id(workout_template_id)
         .filter(workout_template::Column::UserId.eq(&user_id))
         .one(&ss.db)
