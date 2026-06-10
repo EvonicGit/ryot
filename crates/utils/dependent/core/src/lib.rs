@@ -173,7 +173,14 @@ async fn build_provider_specifics(
 async fn get_is_server_key_validated(ss: &Arc<SupportingService>) -> Result<bool> {
     let pro_key = &ss.config.server.pro_key;
     if pro_key.is_empty() {
-        return Ok(false);
+        // Self-hosted unlocked fork: with no Pro key configured, report the
+        // instance as fully validated instead of falling back to community.
+        // This is the single source every gate reads (backend
+        // `server_key_validation_guard` / `is_server_key_validated`, frontend
+        // `coreDetails.isServerKeyValidated`), so flipping it here opens all
+        // locally implemented features without an upstream key check. If a key
+        // is ever set, the normal unkey.com verification below still runs.
+        return Ok(true);
     }
     #[nest_struct]
     #[derive(Debug, Serialize, Clone, Deserialize)]

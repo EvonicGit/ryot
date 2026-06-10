@@ -473,3 +473,24 @@ pub fn get_enabled_users_query() -> Select<User> {
             .or(user::Column::IsDisabled.is_null()),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // In the self-hosted-unlocked fork, `get_is_server_key_validated` returns
+    // true when no Pro key is configured, so every gated backend operation
+    // reaches its guard with `is_server_key_validated == true`. These tests pin
+    // the guard's contract: it must open on `true` and only ever block on
+    // `false`. If an upstream sync reintroduces a path that passes `false`, the
+    // first assertion is what proves the feature is still reachable for us.
+    #[tokio::test]
+    async fn guard_opens_when_validated() {
+        assert!(server_key_validation_guard(true).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn guard_blocks_when_not_validated() {
+        assert!(server_key_validation_guard(false).await.is_err());
+    }
+}

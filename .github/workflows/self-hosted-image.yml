@@ -2,7 +2,7 @@ name: Self-hosted image
 
 on:
   push:
-    branches: ["self-hosted-templates"]
+    branches: ["self-hosted-unlocked"]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MOON_TOOLCHAIN_FORCE_GLOBALS: true
-      APP_VERSION: v10.3.0-self-hosted-templates
+      APP_VERSION: v10.3.0-self-hosted-unlocked
       UNKEY_ROOT_KEY: unused-in-self-hosted-build
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +69,6 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/evonicgit/ryot:self-hosted-templates
+          tags: ghcr.io/evonicgit/ryot:self-hosted-unlocked
           cache-from: type=gha
           cache-to: type=gha,mode=max
