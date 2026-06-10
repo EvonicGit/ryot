@@ -4,7 +4,9 @@ FROM $NODE_BASE_IMAGE AS frontend-build-base
 ENV MOON_TOOLCHAIN_FORCE_GLOBALS=true
 WORKDIR /app
 RUN apt update && apt install -y --no-install-recommends git curl ca-certificates xz-utils
-RUN npm install -g @moonrepo/cli@1.41.8 && moon --version
+RUN curl -fsSL https://github.com/moonrepo/moon/releases/download/v1.41.8/moon-x86_64-unknown-linux-gnu -o /usr/local/bin/moon \
+    && chmod +x /usr/local/bin/moon \
+    && moon --version
 
 FROM frontend-build-base AS frontend-workspace
 WORKDIR /app
