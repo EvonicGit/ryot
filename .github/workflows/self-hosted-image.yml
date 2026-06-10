@@ -38,13 +38,21 @@ jobs:
       - name: Build notification templates
         run: moon run transactional:build
 
+      - name: Install cross
+        uses: taiki-e/cache-cargo-install-action@b8c5be6c3fb064f797977463ac00b01844751632
+        with:
+          tool: cross
+          git: https://github.com/cross-rs/cross
+          rev: 51f46f296253d8122c927c5bb933e3c4f27cc317
+          locked: false
+
       - name: Build backend
-        run: cargo build --locked --release --bin backend
+        run: cross build --locked --target x86_64-unknown-linux-gnu --release
 
       - name: Prepare Docker artifact
         run: |
           mkdir -p artifact/backend-amd64
-          cp target/release/backend artifact/backend-amd64/backend
+          cp target/x86_64-unknown-linux-gnu/release/backend artifact/backend-amd64/backend
 
       - uses: docker/login-action@v3
         with:
