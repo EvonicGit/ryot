@@ -47,7 +47,9 @@ jobs:
           locked: false
 
       - name: Build backend
-        run: cross build --locked --target x86_64-unknown-linux-gnu --release
+        run: |
+          rm -rf target
+          cross build --locked --target x86_64-unknown-linux-gnu --release
 
       - name: Prepare Docker artifact
         run: |
