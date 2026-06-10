@@ -14,5 +14,5 @@ projects:
   website: "apps/website"
 
 vcs:
-  client: "git"
+  manager: "git"
   defaultBranch: "main"

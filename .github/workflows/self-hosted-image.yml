@@ -22,6 +22,7 @@ jobs:
       - uses: moonrepo/setup-toolchain@937d7dbbc1ec218aa8641c792d5821addebd9f03
         with:
           auto-install: true
+          moon-version: "1.41.8"
 
       - uses: actions/setup-node@v4
         with:
