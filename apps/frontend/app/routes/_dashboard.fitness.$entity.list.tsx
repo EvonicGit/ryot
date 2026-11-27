@@ -396,8 +396,9 @@ const DisplayFitnessEntity = (props: {
 
 	const personalBestsAchieved =
 		entityInformation.summary.total?.personalBestsAchieved || 0;
-	const repsData = (entityInformation.information.exercises || [])
-		.map((e) => Number.parseInt(e.total?.reps || "0", 10))
+	// Volume (weight x reps) per exercise, in workout order. Ryot stores this as total.weight.
+	const volumeData = (entityInformation.information.exercises || [])
+		.map((e) => Number(e.total?.weight || 0))
 		.filter(Boolean);
 
 	return (
@@ -488,8 +489,8 @@ const DisplayFitnessEntity = (props: {
 						</ActionIcon>
 					</Group>
 				</Group>
-				{repsData.length >= 3 ? (
-					<Sparkline h="60" data={repsData} color="teal" />
+				{volumeData.length >= 3 ? (
+					<Sparkline h="60" data={volumeData} color="teal" />
 				) : null}
 				{showDetails ? (
 					<Box px={{ base: "xs", md: "md" }}>
