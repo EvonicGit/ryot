@@ -2081,6 +2081,7 @@ dependencies = [
  "sea-orm",
  "session-service",
  "supporting-service",
+ "tokio",
  "tracing",
  "uuid",
 ]
