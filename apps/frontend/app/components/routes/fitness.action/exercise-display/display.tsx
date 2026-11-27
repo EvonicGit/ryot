@@ -62,8 +62,10 @@ import {
 	sortSupersetExercisesByWorkoutOrder,
 	usePlayFitnessSound,
 } from "../hooks";
+import { ProgressionHint } from "../progression-hint";
 import { SetDisplay } from "../set-display/display";
 import type { FuncStartTimer } from "../types";
+import { CollapsedExerciseSummary } from "./collapsed-summary";
 import { ExerciseDetailsModal } from "./details-modal";
 import { NoteInput } from "./note-input";
 import { DisplayExerciseSetRestTimer } from "./set-rest-timer";
@@ -315,8 +317,17 @@ export const ExerciseDisplay = (props: {
 							</Menu.Item>
 						</Menu.Dropdown>
 					</Menu>
-					{exercise.isCollapsed ? null : (
+					{exercise.isCollapsed ? (
+						<CollapsedExerciseSummary exerciseIdx={props.exerciseIdx} />
+					) : (
 						<Stack ref={parent}>
+							{props.isCreatingTemplate ? null : (
+								<ProgressionHint
+									exercise={exercise}
+									unitSystem={selectedUnitSystem}
+									skipWorkoutId={currentWorkout.updateWorkoutId}
+								/>
+							)}
 							{exercise.notes.map((note, idx) => (
 								<NoteInput
 									note={note}

@@ -1,5 +1,5 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Button, Container, Group, Skeleton, Stack } from "@mantine/core";
+import { Box, Button, Container, Group, Skeleton, Stack } from "@mantine/core";
 import { isNumber, isString, parseParameters } from "@ryot/ts-utils";
 import { produce } from "immer";
 import { RESET } from "jotai/utils";
@@ -9,7 +9,12 @@ import { ClientOnly } from "remix-utils/client-only";
 import { $path } from "safe-routes";
 import { useInterval } from "usehooks-ts";
 import { z } from "zod";
+import {
+	ACTION_BAR_SPACER_HEIGHT,
+	WorkoutActionBar,
+} from "~/components/routes/fitness.action/action-bar";
 import { ExerciseDisplay } from "~/components/routes/fitness.action/exercise-display/display";
+import { useFinishWorkout } from "~/components/routes/fitness.action/finish-workout";
 import { WorkoutHeader } from "~/components/routes/fitness.action/header";
 import {
 	getProgressOfExercise,
@@ -126,6 +131,11 @@ export default function Page() {
 		});
 		if (input.openTimerDrawer) toggleTimerDrawer();
 	};
+	const finishWorkout = useFinishWorkout({
+		stopTimer: () => stopTimer(),
+		loaderData,
+		setIsSaveBtnLoading,
+	});
 	const pauseOrResumeTimer = () => {
 		if (currentTimer)
 			setCurrentTimer(
@@ -360,6 +370,20 @@ export default function Page() {
 									</Button>
 								</Group>
 							</Stack>
+							{loaderData.isCreatingTemplate ? null : (
+								<>
+									<Box h={ACTION_BAR_SPACER_HEIGHT} />
+									<WorkoutActionBar
+										onFinish={finishWorkout}
+										stopTimer={stopTimer}
+										startTimer={startTimer}
+										playCheckSound={playCheckSound}
+										isWorkoutPaused={isWorkoutPaused}
+										isSaveBtnLoading={isSaveBtnLoading}
+										toggleTimerDrawer={toggleTimerDrawer}
+									/>
+								</>
+							)}
 						</>
 					)}
 				</ClientOnly>

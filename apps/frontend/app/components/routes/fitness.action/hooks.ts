@@ -1,19 +1,9 @@
-import type {
-	ExerciseDetailsQuery,
-	UserExerciseDetailsQuery,
-} from "@ryot/generated/graphql/backend/graphql";
 import { isNumber, sortBy } from "@ryot/ts-utils";
 import { Howl } from "howler";
 import { produce } from "immer";
 import { useMemo } from "react";
 import { useUserPreferences } from "~/lib/shared/hooks";
-import { queryClient } from "~/lib/shared/react-query";
-import {
-	getExerciseDetailsQuery,
-	getUserExerciseDetailsQuery,
-	type InProgressWorkout,
-	useCurrentWorkout,
-} from "~/lib/state/fitness";
+import { type InProgressWorkout, useCurrentWorkout } from "~/lib/state/fitness";
 import { DEFAULT_SET_TIMEOUT_DELAY_MS } from "./utils";
 
 export const focusOnExercise = (idx: number) => {
@@ -40,7 +30,7 @@ export const getProgressOfExercise = (cw: InProgressWorkout, index: number) => {
 			: ("not-started" as const);
 };
 
-const getNextSetInWorkout = (
+export const getNextSetInWorkout = (
 	currentSetIdx: number,
 	currentExerciseIdx: number,
 	currentWorkout: InProgressWorkout,
@@ -99,24 +89,41 @@ const getNextSetInWorkout = (
 	};
 };
 
-type ExerciseDetails = ExerciseDetailsQuery["exerciseDetails"];
-type UserExerciseDetails = UserExerciseDetailsQuery["userExerciseDetails"];
-
-const getExerciseImages = (
-	exercise?: ExerciseDetailsQuery["exerciseDetails"],
-) => {
-	return [
-		...(exercise?.assets.s3Images || []),
-		...(exercise?.assets.remoteImages || []),
-	];
-};
-
-const exerciseHasDetailsToShow = (
-	details?: ExerciseDetails,
-	userDetails?: UserExerciseDetails,
-) => {
-	const images = getExerciseImages(details);
-	return (images.length || 0) > 0 || (userDetails?.history?.length || 0) > 0;
+/**
+ * The set the user should do next: the next set after the most recently
+ * confirmed one (superset-aware), otherwise the first unconfirmed set.
+ */
+export const getActiveSet = (workout: InProgressWorkout) => {
+	let latest: { exerciseIdx: number; setIdx: number; at: string } | null = null;
+	for (const [exerciseIdx, exercise] of workout.exercises.entries())
+		for (const [setIdx, set] of exercise.sets.entries())
+			if (
+				typeof set.confirmedAt === "string" &&
+				(!latest || set.confirmedAt > latest.at)
+			)
+				latest = { exerciseIdx, setIdx, at: set.confirmedAt };
+	const firstUnconfirmedIn = (exerciseIdx: number) => {
+		const setIdx =
+			workout.exercises[exerciseIdx]?.sets.findIndex((s) => !s.confirmedAt) ??
+			-1;
+		return setIdx >= 0 ? { exerciseIdx, setIdx } : null;
+	};
+	if (latest) {
+		const next = getNextSetInWorkout(
+			latest.setIdx,
+			latest.exerciseIdx,
+			workout,
+		);
+		if (isNumber(next.exerciseIdx)) {
+			const candidate = firstUnconfirmedIn(next.exerciseIdx);
+			if (candidate) return candidate;
+		}
+	}
+	for (let i = 0; i < workout.exercises.length; i++) {
+		const candidate = firstUnconfirmedIn(i);
+		if (candidate) return candidate;
+	}
+	return null;
 };
 
 export const usePerformTasksAfterSetConfirmed = () => {
@@ -125,12 +132,6 @@ export const usePerformTasksAfterSetConfirmed = () => {
 	const performTask = async (setIdx: number, exerciseIdx: number) => {
 		const exerciseId = currentWorkout?.exercises[exerciseIdx].exerciseId;
 		if (!exerciseId) return;
-		const exerciseDetails = await queryClient.ensureQueryData(
-			getExerciseDetailsQuery(exerciseId),
-		);
-		const userExerciseDetails = await queryClient.ensureQueryData(
-			getUserExerciseDetailsQuery(exerciseId),
-		);
 		let exerciseIdxToFocusOn: number | undefined;
 		setCurrentWorkout((cw) =>
 			produce(cw, (draft) => {
@@ -142,10 +143,7 @@ export const usePerformTasksAfterSetConfirmed = () => {
 					currentExercise.isCollapsed = true;
 					if (isNumber(nextSet.exerciseIdx)) {
 						const nextExercise = draft.exercises[nextSet.exerciseIdx];
-						const nextExerciseHasDetailsToShow =
-							nextExercise &&
-							exerciseHasDetailsToShow(exerciseDetails, userExerciseDetails);
-						if (nextExerciseHasDetailsToShow) nextExercise.isCollapsed = false;
+						if (nextExercise) nextExercise.isCollapsed = false;
 					}
 				}
 			}),
