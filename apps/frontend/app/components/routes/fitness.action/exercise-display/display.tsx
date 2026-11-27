@@ -324,6 +324,7 @@ export const ExerciseDisplay = (props: {
 							{props.isCreatingTemplate ? null : (
 								<ProgressionHint
 									exercise={exercise}
+									workoutName={currentWorkout.name}
 									unitSystem={selectedUnitSystem}
 									skipWorkoutId={currentWorkout.updateWorkoutId}
 								/>

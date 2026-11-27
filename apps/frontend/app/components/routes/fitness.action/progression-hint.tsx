@@ -7,6 +7,7 @@ import {
 import { IconTrendingUp } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { displayWeightWithUnit } from "~/components/fitness/utils";
+import { dayjsLib } from "~/lib/shared/date-utils";
 import { useUserExerciseDetails } from "~/lib/shared/hooks";
 import { type Exercise, getWorkoutDetails } from "~/lib/state/fitness";
 
@@ -55,26 +56,53 @@ type LastSession = {
 	workingSets: number;
 };
 
-const useLastSession = (exerciseId: string, skipWorkoutId?: string) => {
+type LastSessionSource = {
+	name: string;
+	date: string;
+	sets: Array<{ reps: number; weight: number }>;
+};
+
+/**
+ * The last time this exercise was done in a workout with the same name
+ * (e.g. the previous "Upper 13"), falling back to the most recent session.
+ * The same exercise can appear in other routines with a different rep scheme.
+ */
+const useLastSession = (
+	exerciseId: string,
+	workoutName: string,
+	skipWorkoutId?: string,
+) => {
 	const { data: userExerciseDetails } = useUserExerciseDetails(exerciseId);
-	const lastEntry = (userExerciseDetails?.history || []).find(
-		(h) => h.workoutId !== skipWorkoutId,
-	);
+	const entries = (userExerciseDetails?.history || [])
+		.filter((h) => h.workoutId !== skipWorkoutId)
+		.slice(0, 10);
 	return useQuery({
-		enabled: !!lastEntry,
-		queryKey: ["progressionLastSession", lastEntry?.workoutId, lastEntry?.idx],
+		enabled: entries.length > 0,
+		queryKey: [
+			"progressionLastSession",
+			workoutName,
+			entries.map((e) => `${e.workoutId}:${e.idx}`).join(","),
+		],
 		queryFn: async () => {
-			if (!lastEntry) return null;
-			const workout = await getWorkoutDetails(lastEntry.workoutId);
-			const exercise = workout.details.information.exercises[lastEntry.idx];
-			if (!exercise) return null;
-			const sets = exercise.sets
-				.filter((s) => s.lot === SetLot.Normal)
-				.map((s) => ({
-					reps: Number(s.statistic.reps || 0),
-					weight: Number(s.statistic.weight || 0),
-				}));
-			return sets;
+			let fallback: LastSessionSource | null = null;
+			for (const entry of entries) {
+				const workout = await getWorkoutDetails(entry.workoutId);
+				const exercise = workout.details.information.exercises[entry.idx];
+				if (!exercise) continue;
+				const source: LastSessionSource = {
+					name: workout.details.name,
+					date: workout.details.startTime,
+					sets: exercise.sets
+						.filter((s) => s.lot === SetLot.Normal)
+						.map((s) => ({
+							reps: Number(s.statistic.reps || 0),
+							weight: Number(s.statistic.weight || 0),
+						})),
+				};
+				if (source.name.trim() === workoutName.trim()) return source;
+				fallback ??= source;
+			}
+			return fallback;
 		},
 	});
 };
@@ -93,6 +121,7 @@ const summariseLastSession = (
 
 export const ProgressionHint = (props: {
 	exercise: Exercise;
+	workoutName: string;
 	skipWorkoutId?: string;
 	unitSystem: UserUnitSystem;
 }) => {
@@ -100,19 +129,21 @@ export const ProgressionHint = (props: {
 		props.exercise.lot === ExerciseLot.RepsAndWeight
 			? parseProgressionRule(props.exercise.notes)
 			: null;
-	const { data: sets } = useLastSession(
+	const { data: source } = useLastSession(
 		props.exercise.exerciseId,
+		props.workoutName,
 		props.skipWorkoutId,
 	);
-	if (!rule || !sets) return null;
-	const last = summariseLastSession(sets, rule);
+	if (!rule || !source) return null;
+	const last = summariseLastSession(source.sets, rule);
 	if (!last) return null;
 	const ready = last.setsAtTarget >= rule.setsNeeded;
 	const atWeight =
 		last.topWeight > 0
 			? ` at ${displayWeightWithUnit(props.unitSystem, last.topWeight)}`
 			: "";
-	const evidence = `Last time: ${last.setsAtTarget} of ${last.workingSets} sets hit ${rule.thresholdReps} ${rule.unit}${atWeight}.`;
+	const when = `${source.name}, ${dayjsLib(source.date).format("D MMM")}`;
+	const evidence = `Last time (${when}): ${last.setsAtTarget} of ${last.workingSets} sets hit ${rule.thresholdReps} ${rule.unit}${atWeight}.`;
 
 	return ready ? (
 		<Text size="sm" c="teal" fw={600}>
