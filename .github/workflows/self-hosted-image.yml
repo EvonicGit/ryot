@@ -1,8 +1,8 @@
 name: Self-hosted image
 
+# Manual only: the deployed image is built on blackbox (~/ryot-build, tag
+# ryot:local). Run this for backend changes or a full registry image.
 on:
-  push:
-    branches: ["self-hosted-unlocked"]
   workflow_dispatch:
 
 permissions:
