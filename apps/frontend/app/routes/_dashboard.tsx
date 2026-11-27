@@ -98,17 +98,10 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 	const isAccessLinkSession = Boolean(userDetails.accessLinkId);
 	const isDemoInstance = coreDetails.isDemoInstance;
 
-	const shouldHaveUmami =
-		coreDetails.frontend.umami.scriptUrl &&
-		coreDetails.frontend.umami.websiteId &&
-		!coreDetails.disableTelemetry &&
-		!isDemoInstance;
-
 	return {
 		userDetails,
 		coreDetails,
 		isDemoInstance,
-		shouldHaveUmami,
 		currentColorScheme,
 		isAccessLinkSession,
 		desktopSidebarCollapsed,
@@ -446,13 +439,6 @@ export default function Layout() {
 					</AppShell.Main>
 				</Flex>
 			</AppShell>
-			{loaderData.shouldHaveUmami ? (
-				<script
-					defer
-					src={loaderData.coreDetails.frontend.umami.scriptUrl}
-					data-website-id={loaderData.coreDetails.frontend.umami.websiteId}
-				/>
-			) : null}
 		</>
 	);
 }
